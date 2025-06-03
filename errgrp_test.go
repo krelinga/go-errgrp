@@ -5,16 +5,20 @@ import (
 	"testing"
 
 	"github.com/krelinga/go-errgrp"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCut(t *testing.T) {
 	g := errgrp.New()
-	if !assert.NotNil(t, g) {
+	if g == nil {
+		t.Fatal("expected non-nil errgrp")
 		return
 	}
-	assert.True(t, g.Ok())
-	assert.NoError(t, g.Join())
+	if !g.Ok() {
+		t.Error("expected errgrp to be ok")
+	}
+	if g.Join() != nil {
+		t.Error("expected errgrp error to be nil")
+	}
 
 	err1 := errors.New("error 1")
 	err2 := errors.New("error 2")
@@ -27,16 +31,46 @@ func TestCut(t *testing.T) {
 	funcOk := func() (string, error) {
 		return "ok", nil
 	}
-
 	var out1, out2 string
-	out1 = errgrp.Cut(func1())(g)
-	assert.Equal(t, "func1_1", out1)
-	out1, out2 = errgrp.Cut2(func2())(g)
-	assert.Equal(t, "func2_1", out1)
-	assert.Equal(t, "func2_2", out2)
+
 	out1 = errgrp.Cut(funcOk())(g)
-	assert.Equal(t, "ok", out1)
+	if out1 != "ok" {
+		t.Errorf("expected 'ok', got '%s'", out1)
+	}
+	if g.Join() != nil {
+		t.Error("expected errgrp error to be nil after ok function")
+	}
+	if !g.Ok() {
+		t.Error("expected errgrp to be ok after ok function")
+	}
+
+	out1 = errgrp.Cut(func1())(g)
+	if out1 != "func1_1" {
+		t.Errorf("expected 'func1_1', got '%s'", out1)
+	}
+	if g.Ok() {
+		t.Error("expected errgrp to not be ok after error function")
+	}
+	if !errors.Is(g.Join(), err1) {
+		t.Errorf("expected error to be %v, got %v", err1, g.Join())
+	}
+
+	out1, out2 = errgrp.Cut2(func2())(g)
+	if out1 != "func2_1" {
+		t.Errorf("expected 'func2_1', got '%s'", out1)
+	}
+	if out2 != "func2_2" {
+		t.Errorf("expected 'func2_2', got '%s'", out2)
+	}
+	if g.Ok() {
+		t.Error("expected errgrp to not be ok after error function")
+	}
+
 	err := g.Join()
-	assert.True(t, errors.Is(err, err1))
-	assert.True(t, errors.Is(err, err2))
+	if !errors.Is(err, err1) {
+		t.Errorf("expected error to be %v, got %v", err1, err)
+	}
+	if !errors.Is(err, err2) {
+		t.Errorf("expected error to be %v, got %v", err2, err)
+	}
 }
