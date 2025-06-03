@@ -1,1 +1,1 @@
-# go-errorgroup
+# go-errgrp

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	errgrp "github.com/krelinga/go-errorgroup"
+	"github.com/krelinga/go-errgrp"
 	"github.com/stretchr/testify/assert"
 )
 
